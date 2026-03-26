@@ -1,9 +1,64 @@
 <!doctype html>
-<html lang="en">
+<html lang="no">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>iSkole elev login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
   </head>
-  <body></body>
+  <body>
+    <main class="page">
+      <section class="card" aria-labelledby="login-title">
+        <h1 id="login-title">ISKOLE - ELEV</h1>
+
+        <button
+          id="feideBtn"
+          class="feide-btn"
+          type="button"
+          aria-label="Logg inn med Feide"
+        >
+          <span class="icon" aria-hidden="true">🔒</span>
+          FEIDE
+        </button>
+
+        <hr class="divider" />
+
+        <form id="loginForm" class="form" autocomplete="on">
+          <label class="sr-only" for="email">Brukernavn</label>
+          <input id="email" type="email" placeholder="Brukernavn" required />
+
+          <label class="sr-only" for="password">Passord</label>
+          <input id="password" type="password" placeholder="Passord" required />
+
+          <button class="action primary" type="submit">
+            <span aria-hidden="true">↪</span>
+            LOGG INN
+          </button>
+
+          <button id="passkeyBtn" class="action" type="button">
+            <span aria-hidden="true">◍</span>
+            LOGG INN MED PASSNØKKEL
+          </button>
+
+          <button id="resetBtn" class="plain-link" type="button">
+            Bestill nytt passord
+          </button>
+          <p id="msg" class="msg" aria-live="polite"></p>
+        </form>
+
+        <footer class="bottom-links">
+          <a href="#" aria-label="Forsiden">← Forsiden</a>
+          <a href="#" aria-label="Personvernerklaering">Personvernerklaering</a>
+        </footer>
+      </section>
+    </main>
+
+    <script type="module" src="script.js"></script>
+  </body>
 </html>

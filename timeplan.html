@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="no">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Timeplan</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="timeplan.css" />
+  </head>
+  <body>
+    <header class="topp">
+      <div class="topp-innhold">
+        <div class="skole">AKADEMIET Drammen</div>
+        <h1>Timeplan</h1>
+        <div class="bruker">Anmol Hussain Jibran</div>
+      </div>
+      <div class="oppmote-linje">
+        <div class="oppmote-felt">
+          <strong>Dager med undervisning</strong>
+          <span id="verdiDager">136</span>
+        </div>
+        <div class="oppmote-felt">
+          <strong>Timekrav</strong>
+          <span id="verdiTimekrav">204</span>
+        </div>
+        <div class="oppmote-felt">
+          <strong>Timer tilstede</strong>
+          <span id="verdiTimerTilstede">192</span>
+        </div>
+        <div class="oppmote-felt">
+          <strong>Over-/undertid</strong>
+          <span id="verdiOverUnder">-12</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="innhold">
+      <section class="kontroller">
+        <button class="fane">Måned</button>
+        <button class="fane aktiv">Uke</button>
+        <button class="fane">Dag</button>
+        <button class="fane" type="button" aria-label="Forrige uke">◀</button>
+        <div class="uke-boks">Uke 2026-13 (23.mar - 27.mar)</div>
+        <button class="fane" type="button" aria-label="Neste uke">▶</button>
+      </section>
+
+      <section class="rutenett">
+        <div class="dag-hode">Ma 23</div>
+        <div class="dag-hode">Ti 24</div>
+        <div class="dag-hode">On 25</div>
+        <div class="dag-hode">To 26</div>
+        <div class="dag-hode">Fr 27</div>
+
+        <div class="dag-kolonne">
+          <article
+            class="time studietid"
+            data-subject="IM2A STU - 999999"
+            data-time="09:00 - 09:45"
+            data-date="23.03.2026"
+          >
+            IM2A STU<br /><span>09:00 - 09:45</span>
+          </article>
+        </div>
+        <div class="dag-kolonne">
+          <article
+            class="time studietid registrert"
+            data-subject="IM2A STU - 999999"
+            data-time="08:15 - 09:00"
+            data-date="24.03.2026"
+            data-locked="true"
+          >
+            IM2A STU<br /><span>08:15 - 09:00</span>
+          </article>
+          <article
+            class="time studietid"
+            data-subject="IM2A STU - 999999"
+            data-time="09:00 - 09:45"
+            data-date="24.03.2026"
+          >
+            IM2A STU<br /><span>09:00 - 09:45</span>
+          </article>
+        </div>
+        <div class="dag-kolonne">
+          <article
+            class="time studietid registrert"
+            data-subject="IM2A STU - 999999"
+            data-time="08:15 - 09:00"
+            data-date="25.03.2026"
+            data-locked="true"
+          >
+            IM2A STU<br /><span>08:15 - 09:00</span>
+          </article>
+          <article
+            class="time studietid"
+            data-subject="IM2A STU - 999999"
+            data-time="09:00 - 09:45"
+            data-date="25.03.2026"
+          >
+            IM2A STU<br /><span>09:00 - 09:45</span>
+          </article>
+          <article class="time">
+            IM2: BRU 1 @ 325<br /><span>10:00 - 10:45</span>
+          </article>
+          <article class="time">
+            IM2: BRU 1 @ 325<br /><span>10:45 - 11:30</span>
+          </article>
+        </div>
+        <div class="dag-kolonne">
+          <article
+            class="time studietid"
+            data-subject="IM2A STU - 999999"
+            data-time="08:15 - 09:00"
+            data-date="26.03.2026"
+            data-locked="true"
+          >
+            IM2A STU<br /><span>08:15 - 09:00</span>
+          </article>
+          <article
+            class="time studietid"
+            data-subject="IM2A STU - 999999"
+            data-time="09:00 - 09:45"
+            data-date="26.03.2026"
+          >
+            IM2A STU<br /><span>09:00 - 09:45</span>
+          </article>
+          <article class="time">
+            IM1A KRO @ KRO1<br /><span>10:00 - 10:45</span>
+          </article>
+          <article class="time">
+            IM1A KRO @ KRO1<br /><span>10:45 - 11:30</span>
+          </article>
+        </div>
+        <div class="dag-kolonne">
+          <article class="time">
+            IM1: YFF 1 @ 105<br /><span>08:15 - 09:00</span>
+          </article>
+          <article class="time">
+            IM1: YFF 1 @ 105<br /><span>09:00 - 09:45</span>
+          </article>
+          <article class="time">
+            IM1: YFF 1 @ 105<br /><span>10:00 - 10:45</span>
+          </article>
+          <article class="time">
+            IM1: YFF 1 @ 105<br /><span>10:45 - 11:30</span>
+          </article>
+          <article class="time">
+            IM1: YFG 1<br /><span>12:00 - 12:45</span>
+          </article>
+          <article class="time">
+            IM1: YFG 1<br /><span>12:45 - 13:30</span>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <section id="attendanceModal" class="popup skjult" aria-hidden="true">
+      <div
+        class="popup-kort"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modalTitle"
+      >
+        <div class="popup-topp">
+          <div id="modalTitle">IM2A STU - 999999</div>
+          <div id="modalTime">08:15 - 09:00</div>
+        </div>
+        <div class="popup-innhold">
+          <div class="rad">
+            <strong>Dato</strong><span id="modalDate">25.03.2026</span>
+          </div>
+          <div class="rad"><strong>Romnr</strong><span></span></div>
+          <div class="rad"><strong>Fagnavn</strong><span>Studietid</span></div>
+          <div class="rad"><strong>Faglærer</strong><span></span></div>
+          <div class="rad">
+            <strong>Fravær</strong>
+            <span id="absenceWrap">
+              <button id="registerBtn" class="liten-knapp" type="button">
+                Registrer
+              </button>
+            </span>
+          </div>
+          <div class="rad">
+            <strong>Dokumentasjon</strong><span>Udokumentert</span>
+          </div>
+          <div class="rad"><strong>Merknad</strong><span></span></div>
+          <div class="rad"><strong>Egenmelding</strong><span>Nei</span></div>
+        </div>
+      </div>
+    </section>
+
+    <script src="timeplan.js"></script>
+  </body>
+</html>

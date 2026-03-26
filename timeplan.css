@@ -1,0 +1,231 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "IBM Plex Sans", Arial, sans-serif;
+  background: #f0f0f0;
+  color: #1b1b1b;
+  font-size: 14px;
+}
+
+.topp {
+  border-bottom: 1px solid #d5d5d5;
+  background: #f4f4f4;
+}
+
+.topp-innhold {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+}
+
+.skole {
+  font-weight: 600;
+  color: #4a4a4a;
+}
+
+h1 {
+  margin: 0;
+  font-size: 40px;
+}
+
+.bruker {
+  text-align: right;
+  font-weight: 600;
+}
+
+.oppmote-linje {
+  background: #ef370f;
+  color: #ffffff;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.oppmote-felt {
+  white-space: nowrap;
+}
+
+.innhold {
+  padding: 8px;
+}
+
+.kontroller {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.fane {
+  border: 1px solid #b6b6b6;
+  background: #f1f1f1;
+  padding: 7px 12px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.fane.aktiv {
+  background: #d8ebf4;
+}
+
+.uke-boks {
+  margin-left: 8px;
+  border: 1px solid #b6b6b6;
+  padding: 7px 10px;
+  border-radius: 4px;
+  background: #fafafa;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.rutenett {
+  border: 1px solid #d0d0d0;
+  background: #fff;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.dag-hode {
+  border-bottom: 1px solid #d8d8d8;
+  border-right: 1px solid #d8d8d8;
+  background: #f3f3f3;
+  padding: 8px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.dag-hode:last-child {
+  border-right: 0;
+}
+
+.dag-kolonne {
+  min-height: 280px;
+  border-right: 1px solid #e1e1e1;
+  padding: 6px;
+}
+
+.dag-kolonne:last-child {
+  border-right: 0;
+}
+
+.time {
+  background: #d5e7d6;
+  border: 1px solid #c6dbc8;
+  border-radius: 4px;
+  padding: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.time span {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.studietid {
+  cursor: pointer;
+}
+
+.studietid.registrert {
+  background: #bfe5f6;
+  border-color: #9fd1e8;
+}
+
+.popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.16);
+  display: grid;
+  place-items: center;
+  padding: 10px;
+}
+
+.popup.skjult {
+  display: none;
+}
+
+.popup-kort {
+  width: 100%;
+  max-width: 440px;
+  background: #f0f0f0;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.popup-topp {
+  background: #8cc68d;
+  padding: 9px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.popup-innhold {
+  padding: 12px 14px;
+}
+
+.rad {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.liten-knapp {
+  border: 1px solid #4b8fdb;
+  background: #5ea8ff;
+  color: #fff;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#absenceWrap {
+  color: #444;
+}
+
+@media (max-width: 900px) {
+  h1 {
+    font-size: 28px;
+  }
+
+  .oppmote-linje {
+    grid-template-columns: 1fr 1fr;
+    font-size: 12px;
+  }
+
+  .rutenett {
+    grid-template-columns: 1fr;
+  }
+
+  .dag-hode,
+  .dag-kolonne {
+    border-right: 0;
+  }
+
+  .popup-topp {
+    font-size: 15px;
+  }
+
+  .rad {
+    font-size: 13px;
+    grid-template-columns: 100px 1fr;
+  }
+}
