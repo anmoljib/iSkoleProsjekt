@@ -11,8 +11,27 @@ const feideBtn = document.getElementById("feideBtn");
 const passkeyBtn = document.getElementById("passkeyBtn");
 const resetBtn = document.getElementById("resetBtn");
 const KRAV_INNLOGGING = false;
+const TARGET_PAGE = "timeplan.html";
 
 let supabase = null;
+
+function setMessage(text) {
+  if (msg) {
+    msg.textContent = text;
+  }
+}
+
+function redirectToTimeplan() {
+  const targetUrl = new URL(TARGET_PAGE, window.location.href).href;
+  window.location.assign(targetUrl);
+
+  // Extra fallback in case assign is ignored by browser state.
+  setTimeout(() => {
+    if (!window.location.href.includes(TARGET_PAGE)) {
+      window.location.replace(targetUrl);
+    }
+  }, 120);
+}
 
 if (window.supabase && window.supabase.createClient) {
   supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -20,39 +39,36 @@ if (window.supabase && window.supabase.createClient) {
   msg.textContent = "Kunne ikke laste Supabase bibliotek.";
 }
 
-if (form && msg) {
+if (form) {
   form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const redirectToTimeplan = () => {
-      window.location.href = "timeplan.html";
-    };
-
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-
-    if (!email || !password) {
-      msg.textContent = "Skriv inn e-post og passord.";
+    if (!KRAV_INNLOGGING) {
+      // Let HTML form fallback work even if JavaScript redirect fails.
+      setMessage("Logger inn...");
+      setTimeout(redirectToTimeplan, 100);
       return;
     }
 
-    if (!KRAV_INNLOGGING) {
-      msg.textContent = "Logger inn...";
-      setTimeout(redirectToTimeplan, 250);
+    event.preventDefault();
+
+    const email = emailInput ? emailInput.value.trim() : "";
+    const password = passwordInput ? passwordInput.value : "";
+
+    if (!email || !password) {
+      setMessage("Skriv inn e-post og passord.");
       return;
     }
 
     if (!supabase) {
-      msg.textContent = "Supabase er ikke klar. Last siden pa nytt.";
+      setMessage("Supabase er ikke klar. Last siden pa nytt.");
       return;
     }
 
     if (!email.includes("@")) {
-      msg.textContent = "Skriv inn en gyldig e-postadresse.";
+      setMessage("Skriv inn en gyldig e-postadresse.");
       return;
     }
 
-    msg.textContent = "Prøver å logge inn...";
+    setMessage("Prøver å logge inn...");
 
     try {
       const loginPromise = supabase.auth.signInWithPassword({
@@ -68,57 +84,51 @@ if (form && msg) {
       const error = result && result.error ? result.error : null;
 
       if (error) {
-        msg.textContent = "Feil ved innlogging: " + error.message;
-        if (!KRAV_INNLOGGING) {
-          setTimeout(redirectToTimeplan, 300);
-        }
+        setMessage("Feil ved innlogging: " + error.message);
         return;
       }
 
-      msg.textContent = "Innlogget!";
+      setMessage("Innlogget!");
       redirectToTimeplan();
     } catch (err) {
       const errorMessage = err && err.message ? err.message : "Ukjent feil";
-      msg.textContent = "Feil ved innlogging: " + errorMessage;
-      if (!KRAV_INNLOGGING) {
-        setTimeout(redirectToTimeplan, 300);
-      }
+      setMessage("Feil ved innlogging: " + errorMessage);
     }
   });
 }
 
 if (feideBtn) {
   feideBtn.addEventListener("click", () => {
-    msg.textContent = "FEIDE-knapp er ikke koblet enda.";
+    setMessage("FEIDE-knapp er ikke koblet enda.");
   });
 }
 
 if (passkeyBtn) {
   passkeyBtn.addEventListener("click", () => {
-    msg.textContent = "Passnokkel er ikke lagt til enda.";
+    setMessage("Passnokkel er ikke lagt til enda.");
   });
 }
 
 if (resetBtn) {
   resetBtn.addEventListener("click", async () => {
     if (!supabase) {
-      msg.textContent = "Sett opp Supabase for reset av passord.";
+      setMessage("Sett opp Supabase for reset av passord.");
       return;
     }
 
-    const email = emailInput.value.trim();
+    const email = emailInput ? emailInput.value.trim() : "";
     if (!email) {
-      msg.textContent = "Skriv inn e-post først.";
+      setMessage("Skriv inn e-post først.");
       return;
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email);
 
     if (error) {
-      msg.textContent = "Feil: " + error.message;
+      setMessage("Feil: " + error.message);
       return;
     }
 
-    msg.textContent = "Reset-link sendt hvis e-post finnes.";
+    setMessage("Reset-link sendt hvis e-post finnes.");
   });
 }
