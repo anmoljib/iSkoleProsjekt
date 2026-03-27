@@ -190,18 +190,9 @@ studyLessons.forEach((lesson) => {
     modalTitle.textContent = lesson.dataset.subject || "IM2A STU - 999999";
     modalTime.textContent = lesson.dataset.time || "08:15 - 09:00";
     modalDate.textContent = lesson.dataset.date || "25.03.2026";
-    const isLocked = lesson.dataset.locked === "true";
-    const thursdayLesson = isThursdayDate(lesson.dataset.date);
 
     if (lesson.classList.contains("registrert")) {
       absenceWrap.textContent = "M";
-    } else if (thursdayLesson) {
-      absenceWrap.innerHTML =
-        '<button id="registerBtn" class="liten-knapp" type="button">Registrer</button>';
-    } else if (isLocked && !thursdayLesson) {
-      absenceWrap.textContent = "Kan ikke registreres";
-    } else if (!canRegisterLesson(lesson.dataset.date, lesson.dataset.time)) {
-      absenceWrap.textContent = "Kan ikke registreres";
     } else {
       absenceWrap.innerHTML =
         '<button id="registerBtn" class="liten-knapp" type="button">Registrer</button>';
