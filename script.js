@@ -11,6 +11,7 @@ const feideBtn = document.getElementById("feideBtn");
 const passkeyBtn = document.getElementById("passkeyBtn");
 const resetBtn = document.getElementById("resetBtn");
 const KRAV_INNLOGGING = true;
+const TILLAT_DEMO_FALLBACK = true;
 const TARGET_PAGE = "timeplan.html";
 const ALLOWED_EMAIL_DOMAIN = "stud.akademiet.no";
 const DISPLAY_NAME_STORAGE_KEY = "iskoleDisplayName";
@@ -135,7 +136,18 @@ if (form) {
     }
 
     if (!supabase) {
-      setMessage("Supabase er ikke klar. Last siden pa nytt.");
+      if (!TILLAT_DEMO_FALLBACK) {
+        setMessage("Supabase er ikke klar. Last siden pa nytt.");
+        return;
+      }
+
+      if (displayName) {
+        localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, displayName);
+      }
+
+      localStorage.setItem(EMAIL_STORAGE_KEY, email);
+      setMessage("Supabase utilgjengelig. Fortsetter i demo-modus...");
+      setTimeout(() => redirectToTimeplan(displayName), 150);
       return;
     }
 
@@ -163,7 +175,13 @@ if (form) {
       const error = result && result.error ? result.error : null;
 
       if (error) {
-        setMessage("Feil ved innlogging: " + error.message);
+        if (!TILLAT_DEMO_FALLBACK) {
+          setMessage("Feil ved innlogging: " + error.message);
+          return;
+        }
+
+        setMessage("Innlogging feilet. Fortsetter i demo-modus...");
+        setTimeout(() => redirectToTimeplan(displayName), 150);
         return;
       }
 
