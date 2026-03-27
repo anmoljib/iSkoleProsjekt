@@ -25,6 +25,22 @@ function setMessage(text) {
   }
 }
 
+function normalizeLoginEmail(rawValue) {
+  const value = String(rawValue || "")
+    .trim()
+    .toLowerCase();
+
+  if (!value) {
+    return "";
+  }
+
+  if (value.includes("@")) {
+    return value;
+  }
+
+  return `${value}@${ALLOWED_EMAIL_DOMAIN}`;
+}
+
 function hasAllowedEmailDomain(email) {
   const normalizedEmail = String(email || "")
     .trim()
@@ -55,25 +71,28 @@ function clearStoredIdentity() {
   localStorage.removeItem(EMAIL_STORAGE_KEY);
 }
 
-function redirectToTimeplan(displayName = "") {
+function redirectToTimeplan(displayName = "", email = "") {
   const targetUrl = new URL(TARGET_PAGE, window.location.href);
+  const normalizedEmail = normalizeLoginEmail(
+    email || (emailInput ? emailInput.value : ""),
+  );
 
   if (displayName) {
     targetUrl.searchParams.set("bruker", displayName);
   }
 
-  if (emailInput && emailInput.value.trim()) {
-    targetUrl.searchParams.set("email", emailInput.value.trim());
+  if (normalizedEmail) {
+    targetUrl.searchParams.set("email", normalizedEmail);
   }
 
-  const targetUrlString = targetUrl.toString();
+  const relativeTarget = `${TARGET_PAGE}${targetUrl.search}`;
 
-  window.location.assign(targetUrlString);
+  window.location.href = relativeTarget;
 
-  // Extra fallback in case assign is ignored by browser state.
+  // Extra fallback in case browser keeps current page in history navigation state.
   setTimeout(() => {
-    if (!window.location.href.includes(TARGET_PAGE)) {
-      window.location.replace(targetUrlString);
+    if (!window.location.pathname.endsWith(`/${TARGET_PAGE}`)) {
+      window.location.assign(relativeTarget);
     }
   }, 120);
 }
@@ -103,7 +122,7 @@ if (form) {
 
     if (!KRAV_INNLOGGING) {
       // Local demo mode: skip Supabase, but still enforce domain rule.
-      const demoEmail = emailInput ? emailInput.value.trim() : "";
+      const demoEmail = normalizeLoginEmail(emailInput ? emailInput.value : "");
       const demoDisplayName = getDisplayNameFromEmail(demoEmail);
 
       if (!hasAllowedEmailDomain(demoEmail)) {
@@ -118,11 +137,11 @@ if (form) {
 
       localStorage.setItem(EMAIL_STORAGE_KEY, demoEmail);
       setMessage("Logger inn...");
-      setTimeout(() => redirectToTimeplan(demoDisplayName), 100);
+      setTimeout(() => redirectToTimeplan(demoDisplayName, demoEmail), 100);
       return;
     }
 
-    const email = emailInput ? emailInput.value.trim() : "";
+    const email = normalizeLoginEmail(emailInput ? emailInput.value : "");
     const password = passwordInput ? passwordInput.value : "";
     const displayName = getDisplayNameFromEmail(email);
 
@@ -149,7 +168,7 @@ if (form) {
 
       localStorage.setItem(EMAIL_STORAGE_KEY, email);
       setMessage("Supabase utilgjengelig. Fortsetter i demo-modus...");
-      setTimeout(() => redirectToTimeplan(displayName), 150);
+      setTimeout(() => redirectToTimeplan(displayName, email), 150);
       return;
     }
 
@@ -183,17 +202,25 @@ if (form) {
         }
 
         setMessage("Innlogging feilet. Fortsetter i demo-modus...");
-        setTimeout(() => redirectToTimeplan(displayName), 150);
+        setTimeout(() => redirectToTimeplan(displayName, email), 150);
         return;
       }
 
       setMessage("Innlogget!");
-      redirectToTimeplan(displayName);
+      redirectToTimeplan(displayName, email);
     } catch (err) {
       const errorMessage = err && err.message ? err.message : "Ukjent feil";
       setMessage("Feil ved innlogging: " + errorMessage);
     }
   });
+
+  const submitBtn = form.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      form.requestSubmit();
+    });
+  }
 }
 
 if (feideBtn) {
