@@ -13,6 +13,7 @@ const verdiOverUnder = document.getElementById("verdiOverUnder");
 const DISPLAY_NAME_STORAGE_KEY = "iskoleDisplayName";
 const EMAIL_STORAGE_KEY = "iskoleEmail";
 const LOGIN_PAGE = "index.html";
+const KRAV_INNLOGGING = false;
 const SUPABASE_URL = "https://ugvzzwqlfveqhvsdhxob.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVndnp6d3FsZnZlcWh2c2RoeG9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNTQzMjAsImV4cCI6MjA4OTkzMDMyMH0.D0KtK7fLLMc9onVPfxzLbmeO-umlLr7pWBRLPZ4pUOQ";
@@ -44,6 +45,10 @@ function getDisplayNameFromEmail(email) {
 }
 
 async function enforceAuthenticatedSession() {
+  if (!KRAV_INNLOGGING) {
+    return true;
+  }
+
   if (!window.supabase || !window.supabase.createClient) {
     redirectToLoginBlocked("auth");
     return false;
@@ -106,11 +111,20 @@ function updateHeaderDisplayName() {
   }
 }
 
-enforceAuthenticatedSession().then((isAllowed) => {
-  if (isAllowed) {
+enforceAuthenticatedSession()
+  .then((isAllowed) => {
+    if (isAllowed) {
+      updateHeaderDisplayName();
+    }
+  })
+  .catch(() => {
+    if (KRAV_INNLOGGING) {
+      redirectToLoginBlocked("auth");
+      return;
+    }
+
     updateHeaderDisplayName();
-  }
-});
+  });
 
 function getCurrentDateTimeString() {
   const now = new Date();
@@ -168,6 +182,10 @@ function canRegisterLesson(lessonDate, lessonTime) {
 
 studyLessons.forEach((lesson) => {
   lesson.addEventListener("click", () => {
+    if (!modal || !modalTitle || !modalTime || !modalDate || !absenceWrap) {
+      return;
+    }
+
     activeLesson = lesson;
     modalTitle.textContent = lesson.dataset.subject || "IM2A STU - 999999";
     modalTime.textContent = lesson.dataset.time || "08:15 - 09:00";
@@ -225,15 +243,17 @@ if (registerBtn) {
   registerBtn.addEventListener("click", registerAbsence);
 }
 
-modal.addEventListener("click", (event) => {
-  if (event.target === modal) {
-    modal.classList.add("skjult");
-    modal.setAttribute("aria-hidden", "true");
-  }
-});
+if (modal) {
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) {
+      modal.classList.add("skjult");
+      modal.setAttribute("aria-hidden", "true");
+    }
+  });
+}
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
+  if (event.key === "Escape" && modal) {
     modal.classList.add("skjult");
     modal.setAttribute("aria-hidden", "true");
   }

@@ -10,66 +10,49 @@ const passwordInput = document.getElementById("password");
 const feideBtn = document.getElementById("feideBtn");
 const passkeyBtn = document.getElementById("passkeyBtn");
 const resetBtn = document.getElementById("resetBtn");
-const TARGET_PAGE = "timeplan.html";
-const DISPLAY_NAME_STORAGE_KEY = "iskoleDisplayName";
+const KRAV_INNLOGGING = false;
 const EMAIL_STORAGE_KEY = "iskoleEmail";
+const DISPLAY_NAME_STORAGE_KEY = "iskoleDisplayName";
+const DEFAULT_EMAIL_DOMAIN = "stud.akademiet.no";
 
 let supabase = null;
-
-function setMessage(text) {
-  if (msg) {
-    msg.textContent = text;
-  }
-}
-
-function normalizeLoginEmail(rawValue) {
-  const value = String(rawValue || "")
-    .trim()
-    .toLowerCase();
-
-  return value;
-}
 
 function getDisplayNameFromEmail(email) {
   const normalizedEmail = String(email || "").trim();
   const atIndex = normalizedEmail.lastIndexOf("@");
 
   if (atIndex <= 0) {
-    return "";
+    return normalizedEmail;
   }
 
   return normalizedEmail.slice(0, atIndex);
 }
 
-function clearStoredIdentity() {
-  localStorage.removeItem(DISPLAY_NAME_STORAGE_KEY);
-  localStorage.removeItem(EMAIL_STORAGE_KEY);
+function normalizeEmail(rawEmail) {
+  const normalized = String(rawEmail || "").trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  if (normalized.includes("@")) {
+    return normalized;
+  }
+
+  return `${normalized}@${DEFAULT_EMAIL_DOMAIN}`;
 }
 
-function redirectToTimeplan(displayName = "", email = "") {
-  const targetUrl = new URL(TARGET_PAGE, window.location.href);
-  const normalizedEmail = normalizeLoginEmail(
-    email || (emailInput ? emailInput.value : ""),
-  );
+function storeIdentity(email) {
+  const displayName = getDisplayNameFromEmail(email);
+  localStorage.setItem(EMAIL_STORAGE_KEY, email);
 
   if (displayName) {
-    targetUrl.searchParams.set("bruker", displayName);
+    localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, displayName);
   }
+}
 
-  if (normalizedEmail) {
-    targetUrl.searchParams.set("email", normalizedEmail);
-  }
-
-  const relativeTarget = `${TARGET_PAGE}${targetUrl.search}`;
-
-  window.location.href = relativeTarget;
-
-  // Extra fallback in case browser keeps current page in history navigation state.
-  setTimeout(() => {
-    if (!window.location.pathname.endsWith(`/${TARGET_PAGE}`)) {
-      window.location.assign(relativeTarget);
-    }
-  }, 120);
+function redirectToTimeplan() {
+  window.location.href = "timeplan.html";
 }
 
 if (window.supabase && window.supabase.createClient) {
@@ -78,112 +61,118 @@ if (window.supabase && window.supabase.createClient) {
   msg.textContent = "Kunne ikke laste Supabase bibliotek.";
 }
 
-const blockedReason = new URLSearchParams(window.location.search).get(
-  "blocked",
-);
-if (blockedReason === "auth") {
-  setMessage("Du ma logge inn for a apne timeplanen.");
-}
-
-if (form) {
+if (form && msg) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const email = normalizeLoginEmail(emailInput ? emailInput.value : "");
-    const password = passwordInput ? passwordInput.value : "";
-    const displayName = getDisplayNameFromEmail(email);
+    const email = normalizeEmail(emailInput && emailInput.value);
+    const password = passwordInput.value;
 
     if (!email || !password) {
-      setMessage("Skriv inn e-post og passord.");
+      msg.textContent = "Skriv inn e-post og passord.";
+      return;
+    }
+
+    if (!KRAV_INNLOGGING) {
+      storeIdentity(email);
+      msg.textContent = "Logger inn...";
+      setTimeout(redirectToTimeplan, 200);
       return;
     }
 
     if (!supabase) {
-      setMessage("Supabase er ikke klar. Last siden pa nytt.");
+      msg.textContent = "Supabase er ikke klar. Last siden pa nytt.";
       return;
     }
 
-    if (displayName) {
-      localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, displayName);
+    if (!email.includes("@")) {
+      msg.textContent = "Skriv inn en gyldig e-postadresse.";
+      return;
     }
 
-    if (email) {
-      localStorage.setItem(EMAIL_STORAGE_KEY, email);
-    }
-
-    setMessage("Prøver å logge inn...");
+    msg.textContent = "Prøver å logge inn...";
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const loginPromise = supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => resolve({ error: { message: "Timeout" } }), 7000);
+      });
+
+      const result = await Promise.race([loginPromise, timeoutPromise]);
+      const error = result && result.error ? result.error : null;
+
       if (error) {
-        clearStoredIdentity();
-        setMessage("Feil ved innlogging: " + error.message);
+        msg.textContent = "Feil ved innlogging: " + error.message;
+        if (!KRAV_INNLOGGING) {
+          setTimeout(redirectToTimeplan, 300);
+        }
         return;
       }
 
-      if (!data || !data.session || !data.user) {
-        setMessage("Innlogging fullforte ikke. Prov igjen.");
-        return;
-      }
-
-      setMessage("Innlogget!");
-      redirectToTimeplan(displayName, email);
+      storeIdentity(email);
+      msg.textContent = "Innlogget!";
+      redirectToTimeplan();
     } catch (err) {
       const errorMessage = err && err.message ? err.message : "Ukjent feil";
-      setMessage("Feil ved innlogging: " + errorMessage);
+      msg.textContent = "Feil ved innlogging: " + errorMessage;
+      if (!KRAV_INNLOGGING) {
+        setTimeout(redirectToTimeplan, 300);
+      }
     }
   });
 
+  // Fallback to make sure submit handler fires in browsers with odd form behavior.
   const submitBtn = form.querySelector('button[type="submit"]');
   if (submitBtn) {
-    submitBtn.addEventListener("click", (event) => {
-      event.preventDefault();
-      if (typeof form.requestSubmit === "function") {
-        form.requestSubmit();
-        return;
-      }
-
-      form.dispatchEvent(new Event("submit", { cancelable: true }));
+    submitBtn.addEventListener("click", () => {
+      form.requestSubmit();
     });
   }
 }
 
 if (feideBtn) {
   feideBtn.addEventListener("click", () => {
-    setMessage("FEIDE-knapp er ikke koblet enda.");
+    msg.textContent = "FEIDE-knapp er ikke koblet enda.";
   });
 }
 
 if (passkeyBtn) {
   passkeyBtn.addEventListener("click", () => {
-    setMessage("Passnokkel er ikke lagt til enda.");
+    msg.textContent = "Passnokkel er ikke lagt til enda.";
   });
 }
 
 if (resetBtn) {
   resetBtn.addEventListener("click", async () => {
     if (!supabase) {
-      setMessage("Sett opp Supabase for reset av passord.");
+      msg.textContent = "Sett opp Supabase for reset av passord.";
       return;
     }
 
-    const email = emailInput ? emailInput.value.trim() : "";
+    const email = emailInput.value.trim();
     if (!email) {
-      setMessage("Skriv inn e-post først.");
+      msg.textContent = "Skriv inn e-post først.";
       return;
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email);
 
     if (error) {
-      setMessage("Feil: " + error.message);
+      msg.textContent = "Feil: " + error.message;
       return;
     }
 
-    setMessage("Reset-link sendt hvis e-post finnes.");
+    msg.textContent = "Reset-link sendt hvis e-post finnes.";
   });
+}
+
+if (msg) {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("blocked") === "auth") {
+    msg.textContent = "Du ble logget ut. Logg inn pa nytt.";
+  }
 }
