@@ -24,10 +24,9 @@ if (form && msg) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    if (!supabase) {
-      msg.textContent = "Supabase er ikke klar. Last siden pa nytt.";
-      return;
-    }
+    const redirectToTimeplan = () => {
+      window.location.href = "timeplan.html";
+    };
 
     const email = emailInput.value.trim();
     const password = passwordInput.value;
@@ -37,16 +36,23 @@ if (form && msg) {
       return;
     }
 
+    if (!KRAV_INNLOGGING) {
+      msg.textContent = "Logger inn...";
+      setTimeout(redirectToTimeplan, 250);
+      return;
+    }
+
+    if (!supabase) {
+      msg.textContent = "Supabase er ikke klar. Last siden pa nytt.";
+      return;
+    }
+
     if (!email.includes("@")) {
       msg.textContent = "Skriv inn en gyldig e-postadresse.";
       return;
     }
 
     msg.textContent = "Prøver å logge inn...";
-
-    const redirectToTimeplan = () => {
-      window.location.href = "timeplan.html";
-    };
 
     try {
       const loginPromise = supabase.auth.signInWithPassword({
