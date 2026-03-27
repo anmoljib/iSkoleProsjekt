@@ -14,6 +14,7 @@ const KRAV_INNLOGGING = true;
 const TARGET_PAGE = "timeplan.html";
 const ALLOWED_EMAIL_DOMAIN = "stud.akademiet.no";
 const DISPLAY_NAME_STORAGE_KEY = "iskoleDisplayName";
+const EMAIL_STORAGE_KEY = "iskoleEmail";
 
 let supabase = null;
 
@@ -48,11 +49,20 @@ function getDisplayNameFromEmail(email) {
   return normalizedEmail.slice(0, atIndex);
 }
 
+function clearStoredIdentity() {
+  localStorage.removeItem(DISPLAY_NAME_STORAGE_KEY);
+  localStorage.removeItem(EMAIL_STORAGE_KEY);
+}
+
 function redirectToTimeplan(displayName = "") {
   const targetUrl = new URL(TARGET_PAGE, window.location.href);
 
   if (displayName) {
     targetUrl.searchParams.set("bruker", displayName);
+  }
+
+  if (emailInput && emailInput.value.trim()) {
+    targetUrl.searchParams.set("email", emailInput.value.trim());
   }
 
   window.location.assign(targetUrl);
@@ -71,16 +81,43 @@ if (window.supabase && window.supabase.createClient) {
   msg.textContent = "Kunne ikke laste Supabase bibliotek.";
 }
 
+const blockedReason = new URLSearchParams(window.location.search).get(
+  "blocked",
+);
+if (blockedReason === "domain") {
+  setMessage(
+    "Du ma logge inn med en e-post som slutter pa @stud.akademiet.no.",
+  );
+}
+
+if (blockedReason === "auth") {
+  setMessage("Du ma logge inn for a apne timeplanen.");
+}
+
 if (form) {
   form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
     if (!KRAV_INNLOGGING) {
-      // Let HTML form fallback work even if JavaScript redirect fails.
+      // Local demo mode: skip Supabase, but still enforce domain rule.
+      const demoEmail = emailInput ? emailInput.value.trim() : "";
+      const demoDisplayName = getDisplayNameFromEmail(demoEmail);
+
+      if (!hasAllowedEmailDomain(demoEmail)) {
+        clearStoredIdentity();
+        setMessage("Bruk en e-post med @stud.akademiet.no.");
+        return;
+      }
+
+      if (demoDisplayName) {
+        localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, demoDisplayName);
+      }
+
+      localStorage.setItem(EMAIL_STORAGE_KEY, demoEmail);
       setMessage("Logger inn...");
-      setTimeout(redirectToTimeplan, 100);
+      setTimeout(() => redirectToTimeplan(demoDisplayName), 100);
       return;
     }
-
-    event.preventDefault();
 
     const email = emailInput ? emailInput.value.trim() : "";
     const password = passwordInput ? passwordInput.value : "";
@@ -91,18 +128,23 @@ if (form) {
       return;
     }
 
+    if (!hasAllowedEmailDomain(email)) {
+      clearStoredIdentity();
+      setMessage("Bruk en e-post med @stud.akademiet.no.");
+      return;
+    }
+
     if (!supabase) {
       setMessage("Supabase er ikke klar. Last siden pa nytt.");
       return;
     }
 
-    if (!hasAllowedEmailDomain(email)) {
-      setMessage("Bruk en e-post med @stud.akademiet.no.");
-      return;
-    }
-
     if (displayName) {
       localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, displayName);
+    }
+
+    if (email) {
+      localStorage.setItem(EMAIL_STORAGE_KEY, email);
     }
 
     setMessage("Prøver å logge inn...");

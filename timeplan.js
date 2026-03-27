@@ -11,8 +11,110 @@ const verdiTimekrav = document.getElementById("verdiTimekrav");
 const verdiTimerTilstede = document.getElementById("verdiTimerTilstede");
 const verdiOverUnder = document.getElementById("verdiOverUnder");
 const DISPLAY_NAME_STORAGE_KEY = "iskoleDisplayName";
+const EMAIL_STORAGE_KEY = "iskoleEmail";
+const ALLOWED_EMAIL_DOMAIN = "stud.akademiet.no";
+const LOGIN_PAGE = "index.html";
+const SUPABASE_URL = "https://ugvzzwqlfveqhvsdhxob.supabase.co";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVndnp6d3FsZnZlcWh2c2RoeG9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNTQzMjAsImV4cCI6MjA4OTkzMDMyMH0.D0KtK7fLLMc9onVPfxzLbmeO-umlLr7pWBRLPZ4pUOQ";
+
+let supabase = null;
 
 let activeLesson = null;
+
+function hasAllowedEmailDomain(email) {
+  const normalizedEmail = String(email || "")
+    .trim()
+    .toLowerCase();
+  const atIndex = normalizedEmail.lastIndexOf("@");
+
+  if (atIndex <= 0 || atIndex === normalizedEmail.length - 1) {
+    return false;
+  }
+
+  const domain = normalizedEmail.slice(atIndex + 1);
+  return domain === ALLOWED_EMAIL_DOMAIN;
+}
+
+function clearStoredIdentity() {
+  localStorage.removeItem(EMAIL_STORAGE_KEY);
+  localStorage.removeItem(DISPLAY_NAME_STORAGE_KEY);
+}
+
+function redirectToLoginBlocked(reason = "domain") {
+  const loginUrl = new URL(LOGIN_PAGE, window.location.href);
+  loginUrl.searchParams.set("blocked", reason);
+  window.location.replace(loginUrl);
+}
+
+function getDisplayNameFromEmail(email) {
+  const normalizedEmail = String(email || "").trim();
+  const atIndex = normalizedEmail.lastIndexOf("@");
+
+  if (atIndex <= 0) {
+    return "";
+  }
+
+  return normalizedEmail.slice(0, atIndex);
+}
+
+async function enforceAuthenticatedAllowedDomain() {
+  if (!window.supabase || !window.supabase.createClient) {
+    return enforceAllowedDomainOnPage();
+  }
+
+  if (!supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data || !data.session || !data.session.user) {
+    clearStoredIdentity();
+    redirectToLoginBlocked("auth");
+    return false;
+  }
+
+  const sessionEmail = (data.session.user.email || "").trim();
+  if (!hasAllowedEmailDomain(sessionEmail)) {
+    await supabase.auth.signOut();
+    clearStoredIdentity();
+    redirectToLoginBlocked("domain");
+    return false;
+  }
+
+  const sessionDisplayName = getDisplayNameFromEmail(sessionEmail);
+  localStorage.setItem(EMAIL_STORAGE_KEY, sessionEmail);
+  if (sessionDisplayName) {
+    localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, sessionDisplayName);
+  }
+
+  return true;
+}
+
+function enforceAllowedDomainOnPage() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const queryEmail = (urlParams.get("email") || "").trim();
+
+  if (queryEmail) {
+    if (!hasAllowedEmailDomain(queryEmail)) {
+      clearStoredIdentity();
+      redirectToLoginBlocked();
+      return false;
+    }
+
+    localStorage.setItem(EMAIL_STORAGE_KEY, queryEmail);
+    return true;
+  }
+
+  const savedEmail = (localStorage.getItem(EMAIL_STORAGE_KEY) || "").trim();
+  if (!hasAllowedEmailDomain(savedEmail)) {
+    clearStoredIdentity();
+    redirectToLoginBlocked();
+    return false;
+  }
+
+  return true;
+}
 
 function updateHeaderDisplayName() {
   if (!brukerNavn) {
@@ -21,6 +123,7 @@ function updateHeaderDisplayName() {
 
   const urlParams = new URLSearchParams(window.location.search);
   const queryName = (urlParams.get("bruker") || "").trim();
+  const queryEmail = (urlParams.get("email") || "").trim();
 
   if (queryName) {
     brukerNavn.textContent = queryName;
@@ -28,13 +131,32 @@ function updateHeaderDisplayName() {
     return;
   }
 
+  const displayNameFromQueryEmail = getDisplayNameFromEmail(queryEmail);
+  if (displayNameFromQueryEmail) {
+    brukerNavn.textContent = displayNameFromQueryEmail;
+    localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, displayNameFromQueryEmail);
+    localStorage.setItem(EMAIL_STORAGE_KEY, queryEmail);
+    return;
+  }
+
   const savedName = localStorage.getItem(DISPLAY_NAME_STORAGE_KEY);
   if (savedName) {
     brukerNavn.textContent = savedName;
+    return;
+  }
+
+  const savedEmail = localStorage.getItem(EMAIL_STORAGE_KEY);
+  const displayNameFromSavedEmail = getDisplayNameFromEmail(savedEmail);
+  if (displayNameFromSavedEmail) {
+    brukerNavn.textContent = displayNameFromSavedEmail;
   }
 }
 
-updateHeaderDisplayName();
+enforceAuthenticatedAllowedDomain().then((isAllowed) => {
+  if (isAllowed) {
+    updateHeaderDisplayName();
+  }
+});
 
 function getCurrentDateTimeString() {
   const now = new Date();
