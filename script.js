@@ -44,23 +44,40 @@ if (form && msg) {
 
     msg.textContent = "Prøver å logge inn...";
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const redirectToTimeplan = () => {
+      window.location.href = "timeplan.html";
+    };
 
-    if (error) {
-      msg.textContent = "Feil ved innlogging: " + error.message;
-      if (!KRAV_INNLOGGING) {
-        setTimeout(() => {
-          window.location.href = "timeplan.html";
-        }, 300);
+    try {
+      const loginPromise = supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => resolve({ error: { message: "Timeout" } }), 7000);
+      });
+
+      const result = await Promise.race([loginPromise, timeoutPromise]);
+      const error = result && result.error ? result.error : null;
+
+      if (error) {
+        msg.textContent = "Feil ved innlogging: " + error.message;
+        if (!KRAV_INNLOGGING) {
+          setTimeout(redirectToTimeplan, 300);
+        }
+        return;
       }
-      return;
-    }
 
-    msg.textContent = "Innlogget!";
-    window.location.href = "timeplan.html";
+      msg.textContent = "Innlogget!";
+      redirectToTimeplan();
+    } catch (err) {
+      const errorMessage = err && err.message ? err.message : "Ukjent feil";
+      msg.textContent = "Feil ved innlogging: " + errorMessage;
+      if (!KRAV_INNLOGGING) {
+        setTimeout(redirectToTimeplan, 300);
+      }
+    }
   });
 }
 
