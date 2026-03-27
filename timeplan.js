@@ -22,9 +22,33 @@ let supabase = null;
 
 let activeLesson = null;
 
+function safeStorageGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function safeStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (_error) {
+    // Ignore storage failures so UI behavior still works.
+  }
+}
+
+function safeStorageRemove(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch (_error) {
+    // Ignore storage failures so UI behavior still works.
+  }
+}
+
 function clearStoredIdentity() {
-  localStorage.removeItem(EMAIL_STORAGE_KEY);
-  localStorage.removeItem(DISPLAY_NAME_STORAGE_KEY);
+  safeStorageRemove(EMAIL_STORAGE_KEY);
+  safeStorageRemove(DISPLAY_NAME_STORAGE_KEY);
 }
 
 function redirectToLoginBlocked(reason = "auth") {
@@ -67,9 +91,9 @@ async function enforceAuthenticatedSession() {
 
   const sessionEmail = (data.session.user.email || "").trim();
   const sessionDisplayName = getDisplayNameFromEmail(sessionEmail);
-  localStorage.setItem(EMAIL_STORAGE_KEY, sessionEmail);
+  safeStorageSet(EMAIL_STORAGE_KEY, sessionEmail);
   if (sessionDisplayName) {
-    localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, sessionDisplayName);
+    safeStorageSet(DISPLAY_NAME_STORAGE_KEY, sessionDisplayName);
   }
 
   return true;
@@ -86,29 +110,57 @@ function updateHeaderDisplayName() {
 
   if (queryName) {
     brukerNavn.textContent = queryName;
-    localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, queryName);
+    safeStorageSet(DISPLAY_NAME_STORAGE_KEY, queryName);
     return;
   }
 
   const displayNameFromQueryEmail = getDisplayNameFromEmail(queryEmail);
   if (displayNameFromQueryEmail) {
     brukerNavn.textContent = displayNameFromQueryEmail;
-    localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, displayNameFromQueryEmail);
-    localStorage.setItem(EMAIL_STORAGE_KEY, queryEmail);
+    safeStorageSet(DISPLAY_NAME_STORAGE_KEY, displayNameFromQueryEmail);
+    safeStorageSet(EMAIL_STORAGE_KEY, queryEmail);
     return;
   }
 
-  const savedName = localStorage.getItem(DISPLAY_NAME_STORAGE_KEY);
+  const savedName = safeStorageGet(DISPLAY_NAME_STORAGE_KEY);
   if (savedName) {
     brukerNavn.textContent = savedName;
     return;
   }
 
-  const savedEmail = localStorage.getItem(EMAIL_STORAGE_KEY);
+  const savedEmail = safeStorageGet(EMAIL_STORAGE_KEY);
   const displayNameFromSavedEmail = getDisplayNameFromEmail(savedEmail);
   if (displayNameFromSavedEmail) {
     brukerNavn.textContent = displayNameFromSavedEmail;
   }
+}
+
+function openLessonModal(lesson) {
+  if (
+    !lesson ||
+    !modal ||
+    !modalTitle ||
+    !modalTime ||
+    !modalDate ||
+    !absenceWrap
+  ) {
+    return;
+  }
+
+  activeLesson = lesson;
+  modalTitle.textContent = lesson.dataset.subject || "IM2A STU - 999999";
+  modalTime.textContent = lesson.dataset.time || "08:15 - 09:00";
+  modalDate.textContent = lesson.dataset.date || "25.03.2026";
+
+  if (lesson.classList.contains("registrert")) {
+    absenceWrap.textContent = "M";
+  } else {
+    absenceWrap.innerHTML =
+      '<button id="registerBtn" class="liten-knapp" type="button">Registrer</button>';
+  }
+
+  modal.classList.remove("skjult");
+  modal.setAttribute("aria-hidden", "false");
 }
 
 enforceAuthenticatedSession()
@@ -182,25 +234,19 @@ function canRegisterLesson(lessonDate, lessonTime) {
 
 studyLessons.forEach((lesson) => {
   lesson.addEventListener("click", () => {
-    if (!modal || !modalTitle || !modalTime || !modalDate || !absenceWrap) {
-      return;
-    }
-
-    activeLesson = lesson;
-    modalTitle.textContent = lesson.dataset.subject || "IM2A STU - 999999";
-    modalTime.textContent = lesson.dataset.time || "08:15 - 09:00";
-    modalDate.textContent = lesson.dataset.date || "25.03.2026";
-
-    if (lesson.classList.contains("registrert")) {
-      absenceWrap.textContent = "M";
-    } else {
-      absenceWrap.innerHTML =
-        '<button id="registerBtn" class="liten-knapp" type="button">Registrer</button>';
-    }
-
-    modal.classList.remove("skjult");
-    modal.setAttribute("aria-hidden", "false");
+    openLessonModal(lesson);
   });
+});
+
+document.addEventListener("click", (event) => {
+  const lesson =
+    event.target && event.target.closest
+      ? event.target.closest(".studietid")
+      : null;
+
+  if (lesson) {
+    openLessonModal(lesson);
+  }
 });
 
 function registerAbsence() {
