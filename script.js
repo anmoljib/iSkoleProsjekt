@@ -10,8 +10,10 @@ const passwordInput = document.getElementById("password");
 const feideBtn = document.getElementById("feideBtn");
 const passkeyBtn = document.getElementById("passkeyBtn");
 const resetBtn = document.getElementById("resetBtn");
-const KRAV_INNLOGGING = false;
+const KRAV_INNLOGGING = true;
 const TARGET_PAGE = "timeplan.html";
+const ALLOWED_EMAIL_DOMAIN = "stud.akademiet.no";
+const DISPLAY_NAME_STORAGE_KEY = "iskoleDisplayName";
 
 let supabase = null;
 
@@ -21,8 +23,38 @@ function setMessage(text) {
   }
 }
 
-function redirectToTimeplan() {
-  const targetUrl = new URL(TARGET_PAGE, window.location.href).href;
+function hasAllowedEmailDomain(email) {
+  const normalizedEmail = String(email || "")
+    .trim()
+    .toLowerCase();
+  const atIndex = normalizedEmail.lastIndexOf("@");
+
+  if (atIndex <= 0 || atIndex === normalizedEmail.length - 1) {
+    return false;
+  }
+
+  const domain = normalizedEmail.slice(atIndex + 1);
+  return domain === ALLOWED_EMAIL_DOMAIN;
+}
+
+function getDisplayNameFromEmail(email) {
+  const normalizedEmail = String(email || "").trim();
+  const atIndex = normalizedEmail.lastIndexOf("@");
+
+  if (atIndex <= 0) {
+    return "";
+  }
+
+  return normalizedEmail.slice(0, atIndex);
+}
+
+function redirectToTimeplan(displayName = "") {
+  const targetUrl = new URL(TARGET_PAGE, window.location.href);
+
+  if (displayName) {
+    targetUrl.searchParams.set("bruker", displayName);
+  }
+
   window.location.assign(targetUrl);
 
   // Extra fallback in case assign is ignored by browser state.
@@ -52,6 +84,7 @@ if (form) {
 
     const email = emailInput ? emailInput.value.trim() : "";
     const password = passwordInput ? passwordInput.value : "";
+    const displayName = getDisplayNameFromEmail(email);
 
     if (!email || !password) {
       setMessage("Skriv inn e-post og passord.");
@@ -63,9 +96,13 @@ if (form) {
       return;
     }
 
-    if (!email.includes("@")) {
-      setMessage("Skriv inn en gyldig e-postadresse.");
+    if (!hasAllowedEmailDomain(email)) {
+      setMessage("Bruk en e-post med @stud.akademiet.no.");
       return;
+    }
+
+    if (displayName) {
+      localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, displayName);
     }
 
     setMessage("Prøver å logge inn...");
@@ -89,7 +126,7 @@ if (form) {
       }
 
       setMessage("Innlogget!");
-      redirectToTimeplan();
+      redirectToTimeplan(displayName);
     } catch (err) {
       const errorMessage = err && err.message ? err.message : "Ukjent feil";
       setMessage("Feil ved innlogging: " + errorMessage);

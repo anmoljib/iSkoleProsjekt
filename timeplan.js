@@ -3,14 +3,38 @@ const modal = document.getElementById("attendanceModal");
 const modalTitle = document.getElementById("modalTitle");
 const modalTime = document.getElementById("modalTime");
 const modalDate = document.getElementById("modalDate");
+const brukerNavn = document.getElementById("brukerNavn");
 const registerBtn = document.getElementById("registerBtn");
 const absenceWrap = document.getElementById("absenceWrap");
 const verdiDager = document.getElementById("verdiDager");
 const verdiTimekrav = document.getElementById("verdiTimekrav");
 const verdiTimerTilstede = document.getElementById("verdiTimerTilstede");
 const verdiOverUnder = document.getElementById("verdiOverUnder");
+const DISPLAY_NAME_STORAGE_KEY = "iskoleDisplayName";
 
 let activeLesson = null;
+
+function updateHeaderDisplayName() {
+  if (!brukerNavn) {
+    return;
+  }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const queryName = (urlParams.get("bruker") || "").trim();
+
+  if (queryName) {
+    brukerNavn.textContent = queryName;
+    localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, queryName);
+    return;
+  }
+
+  const savedName = localStorage.getItem(DISPLAY_NAME_STORAGE_KEY);
+  if (savedName) {
+    brukerNavn.textContent = savedName;
+  }
+}
+
+updateHeaderDisplayName();
 
 function getCurrentDateTimeString() {
   const now = new Date();
@@ -28,7 +52,23 @@ function getCurrentDateTimeString() {
   };
 }
 
+function isThursdayDate(dateString) {
+  const [day, month, year] = (dateString || "").split(".").map(Number);
+
+  if (!day || !month || !year) {
+    return false;
+  }
+
+  // Use local noon to avoid timezone/day rollover edge-cases.
+  const date = new Date(year, month - 1, day, 12, 0, 0);
+  return date.getDay() === 4;
+}
+
 function canRegisterLesson(lessonDate, lessonTime) {
+  if (isThursdayDate(lessonDate)) {
+    return true;
+  }
+
   const current = getCurrentDateTimeString();
 
   // Check if date matches
@@ -57,10 +97,16 @@ studyLessons.forEach((lesson) => {
     modalTime.textContent = lesson.dataset.time || "08:15 - 09:00";
     modalDate.textContent = lesson.dataset.date || "25.03.2026";
     const isLocked = lesson.dataset.locked === "true";
+    const thursdayLesson = isThursdayDate(lesson.dataset.date);
 
     if (lesson.classList.contains("registrert")) {
       absenceWrap.textContent = "M";
-    } else if (isLocked) {
+    } else if (thursdayLesson) {
+      absenceWrap.innerHTML =
+        '<button id="registerBtn" class="liten-knapp" type="button">Registrer</button>';
+      const dynamicBtn = document.getElementById("registerBtn");
+      dynamicBtn.addEventListener("click", registerAbsence);
+    } else if (isLocked && !thursdayLesson) {
       absenceWrap.textContent = "Kan ikke registreres";
     } else if (!canRegisterLesson(lesson.dataset.date, lesson.dataset.time)) {
       absenceWrap.textContent = "Kan ikke registreres";
