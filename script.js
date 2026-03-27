@@ -1,5 +1,3 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 // Fyll inn disse fra Supabase -> Settings -> API
 const SUPABASE_URL = "https://ugvzzwqlfveqhvsdhxob.supabase.co";
 const SUPABASE_ANON_KEY =
@@ -12,20 +10,37 @@ const passwordInput = document.getElementById("password");
 const feideBtn = document.getElementById("feideBtn");
 const passkeyBtn = document.getElementById("passkeyBtn");
 const resetBtn = document.getElementById("resetBtn");
+const KRAV_INNLOGGING = false;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabase = null;
+
+if (window.supabase && window.supabase.createClient) {
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else if (msg) {
+  msg.textContent = "Kunne ikke laste Supabase bibliotek.";
+}
 
 if (form && msg) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     if (!supabase) {
-      msg.textContent = "Supabase er ikke satt opp enda.";
+      msg.textContent = "Supabase er ikke klar. Last siden pa nytt.";
       return;
     }
 
     const email = emailInput.value.trim();
     const password = passwordInput.value;
+
+    if (!email || !password) {
+      msg.textContent = "Skriv inn e-post og passord.";
+      return;
+    }
+
+    if (!email.includes("@")) {
+      msg.textContent = "Skriv inn en gyldig e-postadresse.";
+      return;
+    }
 
     msg.textContent = "Prøver å logge inn...";
 
@@ -35,7 +50,12 @@ if (form && msg) {
     });
 
     if (error) {
-      msg.textContent = "Feil: " + error.message;
+      msg.textContent = "Feil ved innlogging: " + error.message;
+      if (!KRAV_INNLOGGING) {
+        setTimeout(() => {
+          window.location.href = "timeplan.html";
+        }, 300);
+      }
       return;
     }
 
