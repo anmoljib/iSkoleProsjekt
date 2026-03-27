@@ -12,6 +12,44 @@ const verdiOverUnder = document.getElementById("verdiOverUnder");
 
 let activeLesson = null;
 
+function getCurrentDateTimeString() {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const year = now.getFullYear();
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+
+  return {
+    date: `${day}.${month}.${year}`,
+    time: `${hours}:${minutes}`,
+    hours: now.getHours(),
+    minutes: now.getMinutes(),
+  };
+}
+
+function canRegisterLesson(lessonDate, lessonTime) {
+  const current = getCurrentDateTimeString();
+
+  // Check if date matches
+  if (current.date !== lessonDate) {
+    return false;
+  }
+
+  // Parse lesson time (e.g., "08:15 - 09:00")
+  const timeParts = lessonTime.split(" - ");
+  const lessonStartTime = timeParts[0]; // "08:15"
+
+  // Parse current time and lesson start time
+  const currentTotalMinutes = current.hours * 60 + current.minutes;
+  const [lessonHours, lessonMinutes] = lessonStartTime.split(":").map(Number);
+  const lessonTotalMinutes = lessonHours * 60 + lessonMinutes;
+
+  // Can register if current time is within 15 minutes before or after lesson start
+  const timeDifference = Math.abs(currentTotalMinutes - lessonTotalMinutes);
+  return timeDifference <= 15;
+}
+
 studyLessons.forEach((lesson) => {
   lesson.addEventListener("click", () => {
     activeLesson = lesson;
@@ -23,6 +61,8 @@ studyLessons.forEach((lesson) => {
     if (lesson.classList.contains("registrert")) {
       absenceWrap.textContent = "M";
     } else if (isLocked) {
+      absenceWrap.textContent = "Kan ikke registreres";
+    } else if (!canRegisterLesson(lesson.dataset.date, lesson.dataset.time)) {
       absenceWrap.textContent = "Kan ikke registreres";
     } else {
       absenceWrap.innerHTML =
