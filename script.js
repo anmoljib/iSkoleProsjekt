@@ -11,11 +11,14 @@ const feideBtn = document.getElementById("feideBtn");
 const passkeyBtn = document.getElementById("passkeyBtn");
 const resetBtn = document.getElementById("resetBtn");
 const KRAV_INNLOGGING = false;
+const TIMEPLAN_PAGE = "timeplan.html";
 const EMAIL_STORAGE_KEY = "iskoleEmail";
 const DISPLAY_NAME_STORAGE_KEY = "iskoleDisplayName";
 const DEFAULT_EMAIL_DOMAIN = "stud.akademiet.no";
+const SUBMIT_FALLBACK_DELAY_MS = 500;
 
 let supabase = null;
+let submitHandled = false;
 
 function getDisplayNameFromEmail(email) {
   const normalizedEmail = String(email || "").trim();
@@ -44,15 +47,25 @@ function normalizeEmail(rawEmail) {
 
 function storeIdentity(email) {
   const displayName = getDisplayNameFromEmail(email);
-  localStorage.setItem(EMAIL_STORAGE_KEY, email);
+  try {
+    localStorage.setItem(EMAIL_STORAGE_KEY, email);
 
-  if (displayName) {
-    localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, displayName);
+    if (displayName) {
+      localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, displayName);
+    }
+  } catch (_error) {
+    // Ignore storage failures (private mode / blocked storage), login flow should continue.
   }
 }
 
 function redirectToTimeplan() {
-  window.location.href = "timeplan.html";
+  const targetUrl = new URL(TIMEPLAN_PAGE, window.location.href).href;
+
+  try {
+    window.location.assign(targetUrl);
+  } catch (error) {
+    window.location.href = targetUrl;
+  }
 }
 
 if (window.supabase && window.supabase.createClient) {
@@ -64,9 +77,10 @@ if (window.supabase && window.supabase.createClient) {
 if (form && msg) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    submitHandled = true;
 
     const email = normalizeEmail(emailInput && emailInput.value);
-    const password = passwordInput.value;
+    const password = passwordInput ? passwordInput.value : "";
 
     if (!email || !password) {
       msg.textContent = "Skriv inn e-post og passord.";
@@ -74,9 +88,15 @@ if (form && msg) {
     }
 
     if (!KRAV_INNLOGGING) {
-      storeIdentity(email);
+      try {
+        storeIdentity(email);
+      } catch (_error) {
+        // Continue even if persisting identity fails.
+      }
+
       msg.textContent = "Logger inn...";
-      setTimeout(redirectToTimeplan, 200);
+      redirectToTimeplan();
+      setTimeout(redirectToTimeplan, 300);
       return;
     }
 
@@ -129,7 +149,16 @@ if (form && msg) {
   const submitBtn = form.querySelector('button[type="submit"]');
   if (submitBtn) {
     submitBtn.addEventListener("click", () => {
+      submitHandled = false;
       form.requestSubmit();
+
+      if (!KRAV_INNLOGGING) {
+        setTimeout(() => {
+          if (!submitHandled) {
+            redirectToTimeplan();
+          }
+        }, SUBMIT_FALLBACK_DELAY_MS);
+      }
     });
   }
 }
@@ -153,7 +182,7 @@ if (resetBtn) {
       return;
     }
 
-    const email = emailInput.value.trim();
+    const email = normalizeEmail(emailInput && emailInput.value);
     if (!email) {
       msg.textContent = "Skriv inn e-post først.";
       return;
