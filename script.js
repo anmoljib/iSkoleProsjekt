@@ -10,10 +10,7 @@ const passwordInput = document.getElementById("password");
 const feideBtn = document.getElementById("feideBtn");
 const passkeyBtn = document.getElementById("passkeyBtn");
 const resetBtn = document.getElementById("resetBtn");
-const KRAV_INNLOGGING = true;
-const TILLAT_DEMO_FALLBACK = true;
 const TARGET_PAGE = "timeplan.html";
-const ALLOWED_EMAIL_DOMAIN = "stud.akademiet.no";
 const DISPLAY_NAME_STORAGE_KEY = "iskoleDisplayName";
 const EMAIL_STORAGE_KEY = "iskoleEmail";
 
@@ -30,29 +27,7 @@ function normalizeLoginEmail(rawValue) {
     .trim()
     .toLowerCase();
 
-  if (!value) {
-    return "";
-  }
-
-  if (value.includes("@")) {
-    return value;
-  }
-
-  return `${value}@${ALLOWED_EMAIL_DOMAIN}`;
-}
-
-function hasAllowedEmailDomain(email) {
-  const normalizedEmail = String(email || "")
-    .trim()
-    .toLowerCase();
-  const atIndex = normalizedEmail.lastIndexOf("@");
-
-  if (atIndex <= 0 || atIndex === normalizedEmail.length - 1) {
-    return false;
-  }
-
-  const domain = normalizedEmail.slice(atIndex + 1);
-  return domain === ALLOWED_EMAIL_DOMAIN;
+  return value;
 }
 
 function getDisplayNameFromEmail(email) {
@@ -106,12 +81,6 @@ if (window.supabase && window.supabase.createClient) {
 const blockedReason = new URLSearchParams(window.location.search).get(
   "blocked",
 );
-if (blockedReason === "domain") {
-  setMessage(
-    "Du ma logge inn med en e-post som slutter pa @stud.akademiet.no.",
-  );
-}
-
 if (blockedReason === "auth") {
   setMessage("Du ma logge inn for a apne timeplanen.");
 }
@@ -119,27 +88,6 @@ if (blockedReason === "auth") {
 if (form) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-
-    if (!KRAV_INNLOGGING) {
-      // Local demo mode: skip Supabase, but still enforce domain rule.
-      const demoEmail = normalizeLoginEmail(emailInput ? emailInput.value : "");
-      const demoDisplayName = getDisplayNameFromEmail(demoEmail);
-
-      if (!hasAllowedEmailDomain(demoEmail)) {
-        clearStoredIdentity();
-        setMessage("Bruk en e-post med @stud.akademiet.no.");
-        return;
-      }
-
-      if (demoDisplayName) {
-        localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, demoDisplayName);
-      }
-
-      localStorage.setItem(EMAIL_STORAGE_KEY, demoEmail);
-      setMessage("Logger inn...");
-      setTimeout(() => redirectToTimeplan(demoDisplayName, demoEmail), 100);
-      return;
-    }
 
     const email = normalizeLoginEmail(emailInput ? emailInput.value : "");
     const password = passwordInput ? passwordInput.value : "";
@@ -150,25 +98,8 @@ if (form) {
       return;
     }
 
-    if (!hasAllowedEmailDomain(email)) {
-      clearStoredIdentity();
-      setMessage("Bruk en e-post med @stud.akademiet.no.");
-      return;
-    }
-
     if (!supabase) {
-      if (!TILLAT_DEMO_FALLBACK) {
-        setMessage("Supabase er ikke klar. Last siden pa nytt.");
-        return;
-      }
-
-      if (displayName) {
-        localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, displayName);
-      }
-
-      localStorage.setItem(EMAIL_STORAGE_KEY, email);
-      setMessage("Supabase utilgjengelig. Fortsetter i demo-modus...");
-      setTimeout(() => redirectToTimeplan(displayName, email), 150);
+      setMessage("Supabase er ikke klar. Last siden pa nytt.");
       return;
     }
 
@@ -183,26 +114,19 @@ if (form) {
     setMessage("Prøver å logge inn...");
 
     try {
-      const loginPromise = supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      const timeoutPromise = new Promise((resolve) => {
-        setTimeout(() => resolve({ error: { message: "Timeout" } }), 7000);
-      });
-
-      const result = await Promise.race([loginPromise, timeoutPromise]);
-      const error = result && result.error ? result.error : null;
-
       if (error) {
-        if (!TILLAT_DEMO_FALLBACK) {
-          setMessage("Feil ved innlogging: " + error.message);
-          return;
-        }
+        clearStoredIdentity();
+        setMessage("Feil ved innlogging: " + error.message);
+        return;
+      }
 
-        setMessage("Innlogging feilet. Fortsetter i demo-modus...");
-        setTimeout(() => redirectToTimeplan(displayName, email), 150);
+      if (!data || !data.session || !data.user) {
+        setMessage("Innlogging fullforte ikke. Prov igjen.");
         return;
       }
 
@@ -218,7 +142,12 @@ if (form) {
   if (submitBtn) {
     submitBtn.addEventListener("click", (event) => {
       event.preventDefault();
-      form.requestSubmit();
+      if (typeof form.requestSubmit === "function") {
+        form.requestSubmit();
+        return;
+      }
+
+      form.dispatchEvent(new Event("submit", { cancelable: true }));
     });
   }
 }

@@ -12,7 +12,6 @@ const verdiTimerTilstede = document.getElementById("verdiTimerTilstede");
 const verdiOverUnder = document.getElementById("verdiOverUnder");
 const DISPLAY_NAME_STORAGE_KEY = "iskoleDisplayName";
 const EMAIL_STORAGE_KEY = "iskoleEmail";
-const ALLOWED_EMAIL_DOMAIN = "stud.akademiet.no";
 const LOGIN_PAGE = "index.html";
 const SUPABASE_URL = "https://ugvzzwqlfveqhvsdhxob.supabase.co";
 const SUPABASE_ANON_KEY =
@@ -22,26 +21,12 @@ let supabase = null;
 
 let activeLesson = null;
 
-function hasAllowedEmailDomain(email) {
-  const normalizedEmail = String(email || "")
-    .trim()
-    .toLowerCase();
-  const atIndex = normalizedEmail.lastIndexOf("@");
-
-  if (atIndex <= 0 || atIndex === normalizedEmail.length - 1) {
-    return false;
-  }
-
-  const domain = normalizedEmail.slice(atIndex + 1);
-  return domain === ALLOWED_EMAIL_DOMAIN;
-}
-
 function clearStoredIdentity() {
   localStorage.removeItem(EMAIL_STORAGE_KEY);
   localStorage.removeItem(DISPLAY_NAME_STORAGE_KEY);
 }
 
-function redirectToLoginBlocked(reason = "domain") {
+function redirectToLoginBlocked(reason = "auth") {
   const loginUrl = new URL(LOGIN_PAGE, window.location.href);
   loginUrl.searchParams.set("blocked", reason);
   window.location.replace(loginUrl);
@@ -58,9 +43,10 @@ function getDisplayNameFromEmail(email) {
   return normalizedEmail.slice(0, atIndex);
 }
 
-async function enforceAuthenticatedAllowedDomain() {
+async function enforceAuthenticatedSession() {
   if (!window.supabase || !window.supabase.createClient) {
-    return enforceAllowedDomainOnPage();
+    redirectToLoginBlocked("auth");
+    return false;
   }
 
   if (!supabase) {
@@ -69,52 +55,16 @@ async function enforceAuthenticatedAllowedDomain() {
 
   const { data, error } = await supabase.auth.getSession();
   if (error || !data || !data.session || !data.session.user) {
-    // Fallback for local/demo mode when a Supabase session is unavailable.
-    return enforceAllowedDomainOnPage();
-  }
-
-  const sessionEmail = (data.session.user.email || "").trim();
-  if (!hasAllowedEmailDomain(sessionEmail)) {
-    await supabase.auth.signOut();
     clearStoredIdentity();
-    redirectToLoginBlocked("domain");
+    redirectToLoginBlocked("auth");
     return false;
   }
 
+  const sessionEmail = (data.session.user.email || "").trim();
   const sessionDisplayName = getDisplayNameFromEmail(sessionEmail);
   localStorage.setItem(EMAIL_STORAGE_KEY, sessionEmail);
   if (sessionDisplayName) {
     localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, sessionDisplayName);
-  }
-
-  return true;
-}
-
-function enforceAllowedDomainOnPage() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const queryEmail = (urlParams.get("email") || "").trim();
-
-  if (queryEmail) {
-    if (!hasAllowedEmailDomain(queryEmail)) {
-      clearStoredIdentity();
-      redirectToLoginBlocked();
-      return false;
-    }
-
-    localStorage.setItem(EMAIL_STORAGE_KEY, queryEmail);
-    return true;
-  }
-
-  const savedEmail = (localStorage.getItem(EMAIL_STORAGE_KEY) || "").trim();
-  if (!savedEmail) {
-    // Allow local/demo usage when no identity has been stored yet.
-    return true;
-  }
-
-  if (!hasAllowedEmailDomain(savedEmail)) {
-    clearStoredIdentity();
-    redirectToLoginBlocked();
-    return false;
   }
 
   return true;
@@ -156,7 +106,7 @@ function updateHeaderDisplayName() {
   }
 }
 
-enforceAuthenticatedAllowedDomain().then((isAllowed) => {
+enforceAuthenticatedSession().then((isAllowed) => {
   if (isAllowed) {
     updateHeaderDisplayName();
   }
