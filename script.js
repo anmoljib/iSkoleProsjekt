@@ -66,12 +66,14 @@ function redirectToTimeplan(displayName = "") {
     targetUrl.searchParams.set("email", emailInput.value.trim());
   }
 
-  window.location.assign(targetUrl);
+  const targetUrlString = targetUrl.toString();
+
+  window.location.assign(targetUrlString);
 
   // Extra fallback in case assign is ignored by browser state.
   setTimeout(() => {
     if (!window.location.href.includes(TARGET_PAGE)) {
-      window.location.replace(targetUrl);
+      window.location.replace(targetUrlString);
     }
   }, 120);
 }

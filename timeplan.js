@@ -106,6 +106,11 @@ function enforceAllowedDomainOnPage() {
   }
 
   const savedEmail = (localStorage.getItem(EMAIL_STORAGE_KEY) || "").trim();
+  if (!savedEmail) {
+    // Allow local/demo usage when no identity has been stored yet.
+    return true;
+  }
+
   if (!hasAllowedEmailDomain(savedEmail)) {
     clearStoredIdentity();
     redirectToLoginBlocked();
