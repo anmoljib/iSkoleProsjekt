@@ -76,13 +76,13 @@ if (window.supabase && window.supabase.createClient) {
 
 if (form && msg) {
   form.addEventListener("submit", async (event) => {
-    event.preventDefault();
     submitHandled = true;
 
     const email = normalizeEmail(emailInput && emailInput.value);
     const password = passwordInput ? passwordInput.value : "";
 
     if (!email || !password) {
+      event.preventDefault();
       msg.textContent = "Skriv inn e-post og passord.";
       return;
     }
@@ -95,10 +95,11 @@ if (form && msg) {
       }
 
       msg.textContent = "Logger inn...";
-      redirectToTimeplan();
-      setTimeout(redirectToTimeplan, 300);
+      // Let the browser do a normal form navigation to timeplan.html.
       return;
     }
+
+    event.preventDefault();
 
     if (!supabase) {
       msg.textContent = "Supabase er ikke klar. Last siden pa nytt.";

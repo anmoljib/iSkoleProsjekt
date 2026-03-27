@@ -198,8 +198,6 @@ studyLessons.forEach((lesson) => {
     } else if (thursdayLesson) {
       absenceWrap.innerHTML =
         '<button id="registerBtn" class="liten-knapp" type="button">Registrer</button>';
-      const dynamicBtn = document.getElementById("registerBtn");
-      dynamicBtn.addEventListener("click", registerAbsence);
     } else if (isLocked && !thursdayLesson) {
       absenceWrap.textContent = "Kan ikke registreres";
     } else if (!canRegisterLesson(lesson.dataset.date, lesson.dataset.time)) {
@@ -207,8 +205,6 @@ studyLessons.forEach((lesson) => {
     } else {
       absenceWrap.innerHTML =
         '<button id="registerBtn" class="liten-knapp" type="button">Registrer</button>';
-      const dynamicBtn = document.getElementById("registerBtn");
-      dynamicBtn.addEventListener("click", registerAbsence);
     }
 
     modal.classList.remove("skjult");
@@ -241,6 +237,16 @@ function oppdaterOppmoteTall() {
 
 if (registerBtn) {
   registerBtn.addEventListener("click", registerAbsence);
+}
+
+if (absenceWrap) {
+  absenceWrap.addEventListener("click", (event) => {
+    const target = event.target;
+
+    if (target && target.id === "registerBtn") {
+      registerAbsence();
+    }
+  });
 }
 
 if (modal) {
